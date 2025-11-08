@@ -1,0 +1,5 @@
+{
+  "name": "Afya Paraíba - Agente de Cronograma",
+  "description": "Um agente de IA para ajudar os alunos da Afya Paraíba a visualizar seus cronogramas de aulas de forma rápida e fácil, buscando por período, módulo e grupo.",
+  "requestFramePermissions": []
+}
