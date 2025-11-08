@@ -118,6 +118,32 @@ export const fetchEvents = (periodo: string, selections: Omit<ModuleSelection, '
     return uniqueEvents;
 };
 
+export const getUniquePeriods = (allAulas: AulaEntry[]): string[] => {
+    const periods = allAulas.map(entry => entry.periodo);
+    const uniquePeriods = [...new Set(periods)];
+    
+    uniquePeriods.sort((a, b) => {
+        const numA = parseInt(a, 10);
+        const numB = parseInt(b, 10);
+        if (!isNaN(numA) && !isNaN(numB)) {
+            return numA - numB;
+        }
+        return a.localeCompare(b);
+    });
+    
+    return uniquePeriods;
+};
+
+export const getUniqueGroupsForModule = (periodo: string, modulo: string, allAulas: AulaEntry[]): string[] => {
+    const groups = allAulas
+        .filter(entry => entry.periodo === periodo && entry.modulo === modulo)
+        .map(entry => entry.grupo);
+    
+    const uniqueGroups = [...new Set(groups)];
+    uniqueGroups.sort();
+    return uniqueGroups;
+};
+
 
 // Helper to format a JS Date object into HH:mm format, ignoring timezone.
 const formatDateToHHMM = (value: any): string => {

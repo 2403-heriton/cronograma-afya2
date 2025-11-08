@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { fetchSchedule, getUniqueModulesForPeriod, fetchEvents, loadDataFromLocalStorage } from './services/scheduleService';
+import { fetchSchedule, getUniqueModulesForPeriod, fetchEvents, loadDataFromLocalStorage, getUniquePeriods, getUniqueGroupsForModule } from './services/scheduleService';
 import type { Schedule, ModuleSelection, Event, AulaEntry } from './types';
-import { PERIODOS, GRUPOS } from './constants';
 import ScheduleForm from './components/ScheduleForm';
 import ScheduleDisplay from './components/ScheduleDisplay';
 import AssessmentDisplay from './components/AssessmentDisplay';
@@ -15,10 +14,11 @@ const App: React.FC = () => {
   const [allAulas, setAllAulas] = useState<AulaEntry[]>([]);
   const [allEvents, setAllEvents] = useState<Event[]>([]);
 
-  const [periodo, setPeriodo] = useState<string>(PERIODOS[0]);
+  const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
+  const [periodo, setPeriodo] = useState<string>('');
   const [availableModules, setAvailableModules] = useState<string[]>([]);
   const [selections, setSelections] = useState<ModuleSelection[]>([
-    { id: Date.now(), modulo: '', grupo: GRUPOS[0] }
+    { id: Date.now(), modulo: '', grupo: '' }
   ]);
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [events, setEvents] = useState<Event[] | null>(null);
@@ -36,31 +36,63 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Carrega os dados do localStorage na inicialização
+  // Carrega os dados do localStorage na inicialização e define as opções dinâmicas
   useEffect(() => {
     const { aulas, events } = loadDataFromLocalStorage();
     setAllAulas(aulas);
     setAllEvents(events);
+
+    if (aulas.length > 0) {
+        const periods = getUniquePeriods(aulas);
+        setAvailablePeriods(periods);
+        if (periods.length > 0) {
+            setPeriodo(periods[0]);
+        }
+    }
   }, []);
 
+  // Atualiza módulos e seleções quando o período ou os dados das aulas mudam
   useEffect(() => {
+    if (!periodo || allAulas.length === 0) return;
+
     setError(null);
     const modules = getUniqueModulesForPeriod(periodo, allAulas);
     setAvailableModules(modules);
 
-    const firstModule = modules[0] || '';
-    setSelections(prevSelections =>
-      prevSelections.map(sel => ({
-        ...sel,
-        modulo: modules.includes(sel.modulo) ? sel.modulo : firstModule
-      }))
-    );
+    setSelections(prevSelections => {
+      const firstModule = modules[0] || '';
+      
+      const updatedSelections = prevSelections.map(sel => {
+        const isModuloStillValid = modules.includes(sel.modulo);
+        const newModulo = isModuloStillValid ? sel.modulo : firstModule;
+        
+        const newAvailableGroups = getUniqueGroupsForModule(periodo, newModulo, allAulas);
+        const isGrupoStillValid = newAvailableGroups.includes(sel.grupo);
+        const newGrupo = isGrupoStillValid ? sel.grupo : (newAvailableGroups[0] || '');
+
+        return { ...sel, modulo: newModulo, grupo: newGrupo };
+      });
+      
+      if (updatedSelections.length === 0 && modules.length > 0) {
+         const firstGroups = getUniqueGroupsForModule(periodo, firstModule, allAulas);
+         return [{ id: Date.now(), modulo: firstModule, grupo: firstGroups[0] || ''}];
+      }
+
+      return updatedSelections;
+    });
   }, [periodo, allAulas]);
 
   const addSelection = () => {
+    const selectedModules = selections.map(s => s.modulo);
+    const nextAvailableModule = availableModules.find(m => !selectedModules.includes(m)) || '';
+    if (!nextAvailableModule) return; // Não adiciona se não houver módulos disponíveis
+
+    const nextAvailableGroups = getUniqueGroupsForModule(periodo, nextAvailableModule, allAulas);
+    const nextGroup = nextAvailableGroups[0] || '';
+
     setSelections(prev => [
       ...prev,
-      { id: Date.now(), modulo: availableModules[0] || '', grupo: GRUPOS[0] }
+      { id: Date.now(), modulo: nextAvailableModule, grupo: nextGroup }
     ]);
   };
 
@@ -69,9 +101,19 @@ const App: React.FC = () => {
   };
 
   const updateSelection = (id: number, field: 'modulo' | 'grupo', value: string) => {
-    setSelections(prev => 
-      prev.map(sel => (sel.id === id ? { ...sel, [field]: value } : sel))
-    );
+    setSelections(prev => {
+      const newSelections = prev.map(sel => (sel.id === id ? { ...sel, [field]: value } : sel));
+      
+      if (field === 'modulo') {
+        const changedSelection = newSelections.find(s => s.id === id);
+        if (changedSelection) {
+          const newGroups = getUniqueGroupsForModule(periodo, value, allAulas);
+          changedSelection.grupo = newGroups[0] || ''; 
+        }
+      }
+      
+      return newSelections;
+    });
   };
 
   const handlePeriodoChange = (newPeriodo: string) => {
@@ -128,6 +170,18 @@ const App: React.FC = () => {
     // Recarrega a página sem o parâmetro de admin para sair do modo de upload
     window.history.replaceState({}, document.title, window.location.pathname);
     setIsAdmin(false);
+
+    // Re-inicializa o estado do período após o upload
+    if (data.aulasData.length > 0) {
+        const periods = getUniquePeriods(data.aulasData);
+        setAvailablePeriods(periods);
+        if (periods.length > 0) {
+            setPeriodo(periods[0]);
+        }
+    } else {
+        setAvailablePeriods([]);
+        setPeriodo('');
+    }
   };
 
 
@@ -151,8 +205,10 @@ const App: React.FC = () => {
         <ScheduleForm
           periodo={periodo}
           setPeriodo={handlePeriodoChange}
+          availablePeriods={availablePeriods}
           selections={selections}
           availableModules={availableModules}
+          allAulas={allAulas}
           addSelection={addSelection}
           removeSelection={removeSelection}
           updateSelection={updateSelection}

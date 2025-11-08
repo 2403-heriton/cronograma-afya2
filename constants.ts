@@ -1,7 +1,4 @@
 
-export const PERIODOS = [...Array.from({ length: 8 }, (_, i) => `${i + 1}º Período`)];
-export const GRUPOS = ["Grupo A", "Grupo B", "Grupo C", "Grupo D"];
-
 export const MODULE_COLORS: { [key: string]: string } = {
   "Módulo I": "border-l-afya-blue",
   "Módulo II": "border-l-afya-pink",
