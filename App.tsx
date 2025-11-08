@@ -26,6 +26,15 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState<boolean>(false);
   const [view, setView] = useState<'schedule' | 'events'>('schedule');
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+
+  // Verifica o parâmetro da URL para ativar o modo de administrador
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'true') {
+      setIsAdmin(true);
+    }
+  }, []);
 
   // Carrega os dados do localStorage na inicialização
   useEffect(() => {
@@ -116,6 +125,9 @@ const App: React.FC = () => {
     setEvents(null);
     setSearched(false);
     setError(null);
+    // Recarrega a página sem o parâmetro de admin para sair do modo de upload
+    window.history.replaceState({}, document.title, window.location.pathname);
+    setIsAdmin(false);
   };
 
 
@@ -192,14 +204,14 @@ const App: React.FC = () => {
           {!searched && !isLoading && (
              <div className="text-center text-gray-500 p-8 bg-gray-800/50 rounded-2xl shadow-sm border border-gray-700">
                 <p className="text-lg">Seu cronograma e eventos aparecerão aqui após a busca.</p>
-                <p className="text-sm mt-2">Use o botão no rodapé para carregar sua planilha de horários.</p>
+                <p className="text-sm mt-2">Use o formulário acima para selecionar seu período, módulo e grupo.</p>
             </div>
           )}
         </div>
       </main>
 
       <footer className="w-full text-center py-6 text-gray-500 text-sm mt-auto">
-        <DataUploader onUploadSuccess={handleUploadSuccess}/>
+        {isAdmin && <DataUploader onUploadSuccess={handleUploadSuccess} />}
         <p className="mt-2">&copy; {new Date().getFullYear()} Afya Paraíba. Todos os direitos reservados.</p>
       </footer>
     </div>

@@ -7,6 +7,9 @@ interface DataUploaderProps {
   onUploadSuccess: (data: { aulasData: AulaEntry[], eventsData: Event[] }) => void;
 }
 
+// Senha para proteger o upload. Em uma aplicação real, isso deveria ser mais seguro.
+const ADMIN_PASSWORD = "afyaadmin2024";
+
 const DataUploader: React.FC<DataUploaderProps> = ({ onUploadSuccess }) => {
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [message, setMessage] = useState('');
@@ -14,8 +17,29 @@ const DataUploader: React.FC<DataUploaderProps> = ({ onUploadSuccess }) => {
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (!file) return;
+        if (!file) {
+            // Se nenhum arquivo for selecionado, apenas resete o input
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
 
+        const password = window.prompt("Acesso Restrito: Digite a senha para processar a planilha.");
+        
+        if (password !== ADMIN_PASSWORD) {
+            if (password !== null) { // Usuário digitou algo e clicou OK
+                setStatus('error');
+                setMessage('Senha incorreta. Upload cancelado.');
+                setTimeout(() => {
+                    setStatus('idle');
+                    setMessage('');
+                }, 3000);
+            }
+            // Se a senha for nula (cancelar) ou incorreta, resete o input e pare a execução
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        // Senha correta, continue com o processamento
         setStatus('loading');
         setMessage('Processando planilha...');
 
@@ -36,7 +60,7 @@ const DataUploader: React.FC<DataUploaderProps> = ({ onUploadSuccess }) => {
                 setMessage('');
             }, 5000);
         } finally {
-             // Reseta o input de arquivo para permitir o upload do mesmo arquivo novamente
+             // Garante que o input de arquivo seja resetado para permitir o upload do mesmo arquivo novamente
             if(fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
@@ -44,6 +68,7 @@ const DataUploader: React.FC<DataUploaderProps> = ({ onUploadSuccess }) => {
     };
 
     const handleButtonClick = () => {
+        // Abre o seletor de arquivos diretamente
         fileInputRef.current?.click();
     };
 
@@ -64,6 +89,7 @@ const DataUploader: React.FC<DataUploaderProps> = ({ onUploadSuccess }) => {
                 onChange={handleFileChange}
                 accept=".xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                 className="hidden"
+                aria-hidden="true"
             />
             <button
                 onClick={handleButtonClick}
@@ -73,7 +99,7 @@ const DataUploader: React.FC<DataUploaderProps> = ({ onUploadSuccess }) => {
                 <UploadIcon className="w-4 h-4" />
                 Atualizar Dados via Planilha
             </button>
-            {message && <p className={`text-xs ${getStatusColor()}`}>{message}</p>}
+            {message && <p className={`text-xs ${getStatusColor()}`} role="status">{message}</p>}
         </div>
     );
 };

@@ -203,7 +203,7 @@ const ScheduleDisplay: React.FC<{ schedule: Schedule | null }> = ({ schedule }) 
         <NotFoundIcon className="w-16 h-16 mx-auto text-gray-500 mb-4" />
         <p className="text-xl font-semibold text-white">Nenhum cronograma encontrado.</p>
         <p className="text-md mt-1 text-gray-400">
-          Use o botão "Atualizar Dados via Planilha" no rodapé para carregar seu cronograma.
+          Verifique se os dados estão atualizados ou se os filtros selecionados estão corretos.
         </p>
       </div>
     );
