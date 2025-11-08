@@ -192,8 +192,14 @@ export const updateDataFromExcel = async (file: File): Promise<{ aulasData: Aula
                 
                 const rawAulasData = XLSX.utils.sheet_to_json(aulasSheet);
                 
-                const aulasData: AulaEntry[] = rawAulasData.map((row: any) => ({
-                    ...row,
+                const aulasData: AulaEntry[] = rawAulasData.map((row: any): AulaEntry => ({
+                    periodo: String(row.periodo ?? '').trim(),
+                    modulo: String(row.modulo ?? '').trim(),
+                    grupo: String(row.grupo ?? '').trim(),
+                    dia_semana: String(row.dia_semana ?? '').trim(),
+                    disciplina: String(row.disciplina ?? '').trim(),
+                    professor: String(row.professor ?? '').trim(),
+                    sala: String(row.sala ?? '').trim(),
                     horario_inicio: formatDateToHHMM(row.horario_inicio),
                     horario_fim: formatDateToHHMM(row.horario_fim),
                 }));
@@ -206,10 +212,15 @@ export const updateDataFromExcel = async (file: File): Promise<{ aulasData: Aula
                     eventsData = eventsData.concat(XLSX.utils.sheet_to_json(eventosSheet));
                 }
 
-                eventsData = eventsData.map((row: any) => ({
-                    ...row,
+                eventsData = eventsData.map((row: any): Event => ({
+                    periodo: String(row.periodo ?? '').trim(),
                     data: formatDateToDDMMYYYY(row.data),
                     horario: formatDateToHHMM(row.horario),
+                    disciplina: String(row.disciplina ?? '').trim(),
+                    tipo: String(row.tipo ?? '').trim(),
+                    local: String(row.local ?? '').trim(),
+                    modulo: String(row.modulo ?? '').trim(),
+                    grupo: String(row.grupo ?? '').trim(),
                 }));
 
                 // Validação de cabeçalhos
