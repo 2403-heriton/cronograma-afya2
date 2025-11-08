@@ -30,12 +30,65 @@ const parseBrDate = (dateString: string): Date => {
   return date;
 };
 
+// Helper to format a JS Date object into HH:mm format, ignoring timezone.
+const formatDateToHHMM = (value: any): string => {
+    // If it's already a string in a time-like format (HH:mm or HH:mm - HH:mm), leave it.
+    if (typeof value === 'string' && /^\d{2}:\d{2}( - \d{2}:\d{2})?$/.test(value)) {
+        return value;
+    }
+    if (value instanceof Date && !isNaN(value.getTime())) {
+        const hours = String(value.getUTCHours()).padStart(2, '0');
+        const minutes = String(value.getUTCMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+    }
+    return String(value ?? '').trim();
+};
+
+// Helper to format a JS Date object into DD/MM/YYYY format, ignoring timezone.
+const formatDateToDDMMYYYY = (value: any): string => {
+    if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+        return value;
+    }
+    if (value instanceof Date && !isNaN(value.getTime())) {
+        const day = String(value.getUTCDate()).padStart(2, '0');
+        const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+        const year = value.getUTCFullYear();
+        return `${day}/${month}/${year}`;
+    }
+    return String(value ?? '').trim();
+};
+
+
 export const loadDataFromLocalStorage = (): { aulas: AulaEntry[], events: Event[] } => {
     const aulasData = localStorage.getItem(AULAS_KEY);
     const eventsData = localStorage.getItem(EVENTS_KEY);
 
-    const aulas = aulasData ? JSON.parse(aulasData) : [];
-    const events = eventsData ? JSON.parse(eventsData) : [];
+    const rawAulas = aulasData ? JSON.parse(aulasData) : [];
+    const rawEvents = eventsData ? JSON.parse(eventsData) : [];
+
+    // Sanitize data on load to ensure type consistency, fixing issues with old stored data.
+    const aulas: AulaEntry[] = rawAulas.map((row: any) => ({
+        periodo: String(row.periodo ?? '').trim(),
+        modulo: String(row.modulo ?? '').trim(),
+        grupo: String(row.grupo ?? '').trim(),
+        dia_semana: String(row.dia_semana ?? '').trim(),
+        disciplina: String(row.disciplina ?? '').trim(),
+        professor: String(row.professor ?? '').trim(),
+        sala: String(row.sala ?? '').trim(),
+        horario_inicio: formatDateToHHMM(row.horario_inicio),
+        horario_fim: formatDateToHHMM(row.horario_fim),
+    }));
+
+    const events: Event[] = rawEvents.map((row: any) => ({
+        periodo: String(row.periodo ?? '').trim(),
+        data: formatDateToDDMMYYYY(row.data),
+        horario: formatDateToHHMM(row.horario),
+        disciplina: String(row.disciplina ?? '').trim(),
+        tipo: String(row.tipo ?? '').trim(),
+        local: String(row.local ?? '').trim(),
+        modulo: String(row.modulo ?? '').trim(),
+        grupo: String(row.grupo ?? '').trim(),
+    }));
 
     return { aulas, events };
 }
@@ -142,35 +195,6 @@ export const getUniqueGroupsForModule = (periodo: string, modulo: string, allAul
     const uniqueGroups = [...new Set(groups)];
     uniqueGroups.sort();
     return uniqueGroups;
-};
-
-
-// Helper to format a JS Date object into HH:mm format, ignoring timezone.
-const formatDateToHHMM = (value: any): string => {
-    // If it's already a string in a time-like format (HH:mm or HH:mm - HH:mm), leave it.
-    if (typeof value === 'string' && /^\d{2}:\d{2}( - \d{2}:\d{2})?$/.test(value)) {
-        return value;
-    }
-    if (value instanceof Date && !isNaN(value.getTime())) {
-        const hours = String(value.getUTCHours()).padStart(2, '0');
-        const minutes = String(value.getUTCMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
-    }
-    return String(value);
-};
-
-// Helper to format a JS Date object into DD/MM/YYYY format, ignoring timezone.
-const formatDateToDDMMYYYY = (value: any): string => {
-    if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-        return value;
-    }
-    if (value instanceof Date && !isNaN(value.getTime())) {
-        const day = String(value.getUTCDate()).padStart(2, '0');
-        const month = String(value.getUTCMonth() + 1).padStart(2, '0');
-        const year = value.getUTCFullYear();
-        return `${day}/${month}/${year}`;
-    }
-    return String(value);
 };
 
 
